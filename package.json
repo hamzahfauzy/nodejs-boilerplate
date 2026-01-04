@@ -1,0 +1,21 @@
+{
+  "name": "htd-node-boilerplate",
+  "type": "module",
+  "scripts": {
+    "start": "node --watch server.js"
+  },
+  "imports": {
+    "#collection/*": "./core/collection/*",
+    "#app/*": "./core/app/*",
+    "#validation/*": "./core/validation/*"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.0.0"
+  }
+}
