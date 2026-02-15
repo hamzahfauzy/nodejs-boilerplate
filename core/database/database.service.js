@@ -1,4 +1,5 @@
 import { getModel } from "./database.registry.js";
+import { Op } from 'sequelize'
 export default class DatabaseService {
     escapeRegex(text) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

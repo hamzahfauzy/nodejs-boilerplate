@@ -1,5 +1,5 @@
 import { getCollection } from "#collection/collection.registry.js";
-import { DataTypes } from "sequelize";
+import { DataTypes } from "#database/database.sequelize.js";
 
 const responseField = {
     id: {searchable: false},
@@ -113,7 +113,6 @@ export default {
 
         listData: async context => {
             let documents = context.data.data
-            const req  = context.req
             const userCollection = getCollection('users')
 
             const userIds = [...new Set(documents.map(d => d.user_id))];
