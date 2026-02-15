@@ -29,3 +29,6 @@ dist
 
 /storage/*
 !/storage/.gitkeep
+
+/app/*
+!/app/.gitkeep
