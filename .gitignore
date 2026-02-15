@@ -28,3 +28,4 @@ logs
 dist
 
 /storage/*
+!/storage/.gitkeep
