@@ -13,12 +13,19 @@ const responseFields = {
             select: ['_id', 'key']
         }
     },
+    createdAt: {},
+    updatedAt: {},
 }
 
 const roles = {
     name: 'roles',
     schema: {
-        name: { type: String, unique: true }
+        fields: {
+            name: { type: String, unique: true }
+        },
+        options: {
+            timestamps: true
+        }
     },
     permissions: ['roles.list','roles.single','roles.create','roles.update','roles.delete'],
     response: {

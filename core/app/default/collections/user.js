@@ -6,6 +6,7 @@ const responseFields = {
     _id: {},
     name: {searchable: true},
     username: {searchable: true},
+    pic_url: {},
     roles: {
         pivot: {
             model: 'user_roles',     // pivot collection
@@ -31,15 +32,23 @@ const responseFields = {
         }
     },
     isActive: {},
+    createdAt: {},
+    updatedAt: {},
 }
 
 const users = {
     name: 'users',
     schema: {
-        name: { type: String },
-        username: { type: String, unique: true },
-        password: String,
-        isActive: { type: String, default: "1" }
+        fields: {
+            name: { type: String },
+            username: { type: String, unique: true },
+            password: String,
+            isActive: { type: String, default: "1" },
+            pic_url: String,
+        },
+        options: {
+            timestamps: true
+        }
     },
     permissions: ['users.list','users.single','users.create','users.update','users.delete'],
     response: {
@@ -74,7 +83,7 @@ const users = {
                 const UserRole = getCollection('user_roles')
                 const user  = context.data
                 const toInsert = context.req.body.roles.map(role => ({
-                    userId: user.id,
+                    userId: user._id,
                     roleId: role
                 }))
                 await UserRole.model.insertMany(toInsert)

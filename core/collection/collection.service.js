@@ -68,6 +68,10 @@ export default class CollectionService {
         }
     }
 
+    escapeRegex(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
     async list(collection, query, limit = 20){
 
         const sortField = query.order?.column || '_id'
@@ -75,7 +79,7 @@ export default class CollectionService {
 
         const filter = {}
 
-        const searchValue = query.search || ''
+        const searchValue = this.escapeRegex(query.search || '')
 
         if (searchValue && collection.response?.list) {
             const orFilters = []
@@ -156,14 +160,16 @@ export default class CollectionService {
             rows.map(row => this.mapRow(row, collection.response?.list))
         )
 
+        const totalPages = Math.ceil(total / limit)
+
         return {
             data,
             pagination: {
                 total,
                 page,
                 limit,
-                totalPages: Math.ceil(total / limit),
-                hasNext: skip + limit < total,
+                totalPages,
+                hasNext: page < totalPages,
                 hasPrev: page > 1
             }
         }

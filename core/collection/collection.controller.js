@@ -11,20 +11,48 @@ export default function collectionController() {
             })
         },
         async list(req, res){
-            if(req.query.draw)
+            const queryParam = await runHook(req.collection, 'queryList', {
+                req
+            }) ?? req.query
+
+            let data = []
+
+            if(queryParam.draw)
             {
-                const data = await service.datatable(req.collection, req.query)
-                res.json(data)
+                data = await service.datatable(req.collection, queryParam)
             }
             else
             {
-                const limit = req.query.limit ?? 20
-                const data = await service.list(req.collection, req.query, limit)
-                res.json(data)
+                const limit = queryParam.nolimit ? false : (queryParam.limit ?? 20)
+                data = await service.list(req.collection, queryParam, limit)
+                
             }
+
+            const hookData = await runHook(req.collection, 'listData', {
+                req,
+                data
+            })
+
+            if(hookData)
+            {
+                data = hookData.data
+            }
+
+            res.json(data)
         },
         async single(req, res){
-            const data = await service.single(req.collection, req.params.id)
+            let data = await service.single(req.collection, req.params.id)
+
+            const hookData = await runHook(req.collection, 'singleData', {
+                req,
+                data
+            })
+
+            if(hookData)
+            {
+                data = hookData.data
+            }
+
             res.json({
                 data,
                 message: 'single data retrieved'

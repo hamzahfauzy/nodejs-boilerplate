@@ -1,6 +1,7 @@
 import { getCollection } from "#collection/collection.registry.js"
 import jwt from 'jsonwebtoken'
 import mongoose from "mongoose"
+import CollectionService from "#collection/collection.service.js" 
 
 export async function authMiddleware(req, res, next){
     const token = req.headers.authorization?.replace('Bearer ', '')
@@ -13,7 +14,7 @@ export async function authMiddleware(req, res, next){
         const UserCollection = getCollection('users')
         const UserRoleCollection = getCollection('user_roles')
 
-        const user = await UserCollection.model.findById(payload.userId)
+        const user = await (new CollectionService).single(UserCollection, payload.userId)
         if (!user || !user.isActive) {
             return res.status(401).json({ message: 'Invalid user' })
         }
@@ -77,4 +78,45 @@ export async function authMiddleware(req, res, next){
         console.log(err)
         return res.status(401).json({ message: 'Invalid token' })
     }
+}
+
+export async function logMiddleware(req, res, next){
+    // hanya log user yang login
+    if (!req.user) return next();
+    if(
+        req.originalUrl.includes('/collection/log_activities') ||
+        req.originalUrl.includes('/ui/bootstrap')
+    ) return next();
+
+    // simpan response body juga (opsional)
+    const oldSend = res.send;
+    const LogActivity = getCollection('log_activities');
+    let responseBody;
+
+    res.send = function (body) {
+        responseBody = body;
+        return oldSend.call(this, body);
+    };
+
+    res.on('finish', async () => {
+        try {
+            await LogActivity.model.create({
+                user: req.user,
+                method: req.method,
+                url: req.originalUrl,
+                request_data: {
+                    params: req.params,
+                    query: req.query,
+                    body: req.body
+                },
+                new_data: responseBody,
+                ip_address: req.ip,
+                user_agent: req.headers['user-agent']
+            });
+        } catch (err) {
+            console.error('Activity log failed:', err.message);
+        }
+    });
+
+    next();
 }

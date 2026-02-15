@@ -16,7 +16,7 @@ export async function login(req, res) {
     const result = await AppService.login(req.body)
     res.json(result)
   } catch (err) {
-    res.status(401).json({ message: err.message })
+    res.status(400).json({ message: err.message })
   }
 }
 
@@ -25,7 +25,10 @@ export async function userInterfaces(req, res){
   const user = {
     id: req.user._id,
     name: req.user.name,
+    pic_url: req.user.pic_url,
     username: req.user.username,
+    isActive: req.user.isActive,
+    roles: req.user.roles,
     permissions
   }
 
@@ -40,4 +43,28 @@ export async function userInterfaces(req, res){
     data,
     message: 'ui response here'
   })
+}
+
+export async function updateAccount(req, res){
+  const data = await AppService.updateProfile(req.user._id, req.body)
+  res.json({
+    status: 'success',
+    data
+  })
+}
+
+export async function updatePic(req, res, next){
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const fileUrl = `${baseUrl}/storage/picture/${req.file.filename}`;
+    const data = await AppService.updateProfile(req.user._id, {
+      pic_url: fileUrl
+    })
+    res.json({
+      status: 'success',
+      data
+    })
+  } catch (err) {
+    next(err);
+  }
 }
