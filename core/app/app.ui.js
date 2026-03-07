@@ -5,6 +5,12 @@ export default {
     registerMenu(key, config){
         menus.set(key, config)
     },
+    appendChildToMenu(menu, key, config, permissions = [], activeState = []){
+        const m = this.getMenu(menu)
+        m.children[key] = config
+        m.permissions = m.permissions.concat(permissions)
+        m.activeState = m.activeState.concat(activeState)
+    },
     getMenu(key){
         return menus.get(key)
     },

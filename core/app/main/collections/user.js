@@ -1,6 +1,7 @@
 import { validateOrAbort } from "#validation/index.js"
 import { hashPassword } from "#app/password.util.js"
 import { getCollection } from "#collection/collection.registry.js"
+import { getModel } from "#database/database.registry.js"
 
 const responseFields = {
     _id: {},
@@ -78,16 +79,22 @@ const users = {
             return validate
         },
         afterCreate: async context => {
+            const user  = context.data
             if(context.req.body.roles)
             {
                 const UserRole = getCollection('user_roles')
-                const user  = context.data
                 const toInsert = context.req.body.roles.map(role => ({
                     userId: user._id,
                     roleId: role
                 }))
                 await UserRole.model.insertMany(toInsert)
             }
+
+            const peopleModel = getModel('people')
+            await peopleModel.create({
+                first_name: user.name,
+                user_id: user._id
+            })
         },
         beforeUpdate: async context => {
             const payload = context.payload

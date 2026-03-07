@@ -107,12 +107,15 @@ export default function DatabaseController() {
 
             if (before) payload = before.payload
 
+            const oldData = await service.single(req.table, req.params.id)
+
             const data = await service.update(req.table, req.params.id, payload)
 
             // AFTER UPDATE
             await runHook(req.table, 'afterUpdate', {
                 req,
-                data
+                data,
+                oldData
             })
 
             res.json({

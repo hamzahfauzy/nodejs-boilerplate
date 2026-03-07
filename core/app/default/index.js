@@ -1,55 +1,70 @@
-import users from './collections/user.js'
-import roles from './collections/roles.js'
-import user_roles from './collections/user_roles.js'
-import role_permissions from './collections/role_permissions.js'
-import permissions from './collections/permissions.js'
-import settings from './collections/settings.js'
-import log_activities from './collections/log_activities.js'
-import menu from './config/menu.js'
-import page from './config/page.js'
-import document_shares from './databases/model/document_shares.js'
-import document_versions from './databases/model/document_versions.js'
-import documents from './databases/model/documents.js'
-import { documentRouter } from './documents.js'
-
-const collectionSchema = [
-    users,
-    roles,
-    permissions,
-    user_roles,
-    role_permissions,
-    settings,
-    log_activities
-]
-
-const tables = [
-    documents,
-    document_shares,
-    document_versions
-]
 
 export default {
     // context {register, ui, db}
     init(context){
-        collectionSchema.forEach(collection => {
-            context.register.collection(collection.name, collection) 
-        })
-
-        for(const m in menu) {
-            context.ui.registerMenu(m, menu[m])
+        const menus = {
+            default: {
+                label: 'Default',
+                isTitle: true
+            },
+            documents: {
+                label: 'Documents',
+                icon: 'file',
+                route: '/documents',
+                permission: "documents.list",
+                activeState:['/documents'],
+            },
+            
+            users: {
+                label: "Users",
+                icon: "users",
+                permission: "users.list",
+                // route: "/users",
+                activeState:['/users', '/roles', '/permissions'],
+                children: {
+                    users: {
+                        label: "All Users",
+                        icon: "users",
+                        route: "/users",
+                        permission: "users.list",
+                        activeState:['/users'],
+                    },
+                    roles: {
+                        label: "Roles",
+                        icon: "award",
+                        route: "/roles",
+                        permission: "roles.list",
+                        activeState:['/roles'],
+                    },
+                    permissions: {
+                        label: "Permissions",
+                        icon: "tag",
+                        route: "/permissions",
+                        permission: "permissions.list",
+                        activeState:['/permissions'],
+                    },
+                }
+            },
+            
+            settings: {
+                label: "Settings",
+                icon: "settings",
+                route: "/settings",
+                permission: "settings.list",
+                activeState:['/settings']
+            },
+            activities: {
+                label: "Activities",
+                icon: "activity",
+                route: "/activities",
+                permission: "log_activities.list",
+                activeState:['/activities'],
+            }
         }
-        
-        for(const p in page) {
-            context.ui.registerPage(p, page[p])
-        }
 
-        for(const t in tables)
+        for(const m in menus)
         {
-            context.register.table(tables[t].name, tables[t])
+            context.ui.registerMenu(m, menus[m])
         }
-
-        context.register.migration('default', 'core/app/default/databases/migrations')
-
-        context.register.route('documents', documentRouter)
     }
 }

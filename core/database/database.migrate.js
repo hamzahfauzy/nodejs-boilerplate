@@ -32,12 +32,12 @@ export async function runSqlMigrations() {
         .filter(f => f.endsWith('.sql'))
         .sort()
     for (const file of files) {
-        if (executed.has(file)) {
+        const fullPath = path.join(migrationDir, file)
+        if (executed.has(fullPath)) {
             //   console.log(`⏭️  Skip ${file}`)
             continue
         }
     
-        const fullPath = path.join(migrationDir, file)
         const sql = fs.readFileSync(fullPath, 'utf8')
     
         console.log(`🚀 Running ${file}`)

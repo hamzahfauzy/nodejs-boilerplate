@@ -75,7 +75,7 @@ export default class DatabaseService {
         * INCLUDE (POPULATE)
         * ========================= */
         const paths = this.extractPopulatePaths(table.response?.list)
-        const include = this.buildSequelizeInclude(paths)
+        const include = this.buildSequelizeInclude(paths, table.response?.list)
 
         /* =========================
         * SELECT FIELDS
@@ -175,42 +175,74 @@ export default class DatabaseService {
     }
 
     // ambil semua populate path dari config
-    extractPopulatePaths(fields) {
-        const paths = []
+    extractPopulatePaths(fields = {}) {
+        const relations = new Set()
 
         for (const config of Object.values(fields)) {
-            if (config.pivot) continue   // ⬅️ TAMBAH
-            if (typeof config.value === 'string') {
-                paths.push(config.value)
+
+            if (config?.pivot) continue
+
+            if (typeof config?.value === 'string' && config.value.includes('.')) {
+                const relation = config.value.split('.')[0]
+                relations.add(relation)
+            }
+
+            if (config?.relation && typeof config.value === 'string') {
+                const relation = config.value.split('.')[0]
+                relations.add(relation)
             }
         }
 
-        return [...new Set(paths)]
+        return [...relations]
     }
 
-    buildSequelizeInclude(paths, config) {
-        return paths.map(path => ({
-            association: path,
-            attributes: this.extractSelectFields(config[path])
-        }))
+    buildSequelizeInclude(relations = [], fields = {}) {
+
+        const include = []
+
+        for (const relation of relations) {
+
+            const attributes = new Set()
+
+            for (const config of Object.values(fields)) {
+
+                if (typeof config?.value !== 'string') continue
+
+                if (!config.value.includes('.')) continue
+
+                const [rel, field] = config.value.split('.')
+
+                if (rel === relation) {
+                    attributes.add(field)
+                }
+            }
+
+            include.push({
+                association: relation,
+                attributes: [...attributes]
+            })
+        }
+
+        return include
     }
 
     // ambil root select field
-    extractSelectFields(fields) {
+    extractSelectFields(fields = {}) {
+
         const set = new Set()
 
         for (const [key, config] of Object.entries(fields)) {
 
-            if (config.pivot) continue
+            if (config?.pivot) continue
 
-            if (typeof config.value === 'string') {
-                set.add(config.value.split('.')[0])
-            } else {
-                set.add(key)
+            if (typeof config?.value === 'string' && config.value.includes('.')) {
+                continue
             }
+
+            set.add(key)
         }
 
-        return [...set] // ⬅️ array, bukan string
+        return [...set]
     }
 
     // mapping hasil ke format DataTable

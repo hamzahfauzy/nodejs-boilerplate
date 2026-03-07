@@ -19,7 +19,7 @@ export default {
             },
             actions: [
                 { 
-                    label: 'Detail', type: 'view', icon: 'eye', permission: "users.single", title: 'Detail Pengguna',
+                    label: 'Detail', type: 'view', icon: 'eye', permission: "users.single", title: 'User Detail',
                     fields: [
                         { name: "name", label: "Name", type: "text" },
                         { name: "username", label: "Username", type: "text" },
@@ -30,6 +30,7 @@ export default {
                             }
                         },
                         { name: "roles", label: "Role", type: "multi-badge", badge: {color: "success", labelKey: "name"} },
+                        { name: "pic_url", label: "Foto", type: "text" },
                         { name: "createdAt", label: "Created At", type: "date" },
                         { name: "updatedAt", label: "Updated At", type: "date" },
                     ]
@@ -43,7 +44,6 @@ export default {
                         { name: "password", label: "Password", type: "password", className: 'col-md-6' },
                         { name: "isActive", label: "Status", type: "select", options: [{label: 'Aktif', value: 1}, {label: 'Tidak Aktif', value: 0}] },
                         { name: "roleIds", label: "Roles", type: "multiCheckbox", options: {url: '/collection/roles', map: {label: 'name', value: '_id'}} },
-                        { name: "pic_url", label: "Foto", type: "text",  },
                     ]
                 },
                 { label: 'Delete', type: 'delete', icon: 'trash', class: 'text-danger', permission: "users.delete"},

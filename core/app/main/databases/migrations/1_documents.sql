@@ -5,6 +5,7 @@ CREATE TABLE documents (
     parent_id BIGINT UNSIGNED NULL,
 
     type ENUM('folder', 'file') NOT NULL,
+    code VARCHAR(255) DEFAULT NULL,
     name VARCHAR(255) NOT NULL,
 
     -- file-only fields

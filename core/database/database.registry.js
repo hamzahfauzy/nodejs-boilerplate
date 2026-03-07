@@ -1,9 +1,9 @@
-import { sequelize, DataTypes } from './database.sequelize.js'
+import { sequelize } from './database.sequelize.js'
 
 const registry = new Map()
 const migrationRegistry = new Map()
 
-function registerModel(name, fields, options = {}) {
+function registerModel(name, fields, options = {}, relations = []) {
     if (sequelize.models[name]) {
         return sequelize.models[name]
     }
@@ -13,11 +13,25 @@ function registerModel(name, fields, options = {}) {
         fields,
         {
             tableName: options.tableName ?? name,
+            paranoid: options.paranoid ?? false,
             timestamps: options.timestamps ?? false,
-            createdAt: options.timestamps ? 'created_at' : false,
-            updatedAt: options.timestamps ? 'updated_at' : false
+            createdAt: options.timestamps ? options.createdAt : false,
+            updatedAt: options.timestamps ? options.updatedAt : false,
+            deletedAt: options.timestamps ? options.deletedAt : false
         }
     )
+
+    if(relations)
+    {
+        for(const relation of relations)
+        {
+            const relationModel = sequelize.models[relation.modelName]
+            model[relation.type](relationModel, {
+                as: relation.as,
+                foreignKey: relation.foreignKey
+            })
+        }
+    }
 
     return model
 }
@@ -25,8 +39,9 @@ function registerModel(name, fields, options = {}) {
 export function registerTable(name, config) {
     const fields = config.schema.fields
     const options = config.schema.options ?? {}
+    const relations = config.schema.relations ?? []
 
-    const model = registerModel(name, fields, options)
+    const model = registerModel(name, fields, options, relations)
     config.model = model
 
     registry.set(name, config)
