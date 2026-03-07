@@ -75,27 +75,39 @@ export default function DatabaseController() {
 
             if (before) payload = before.payload
 
-            const data = await service.create(req.table, payload)
+            try {
+                const data = await service.create(req.table, payload)
+    
+                // AFTER CREATE
+                await runHook(req.table, 'afterCreate', {
+                    req,
+                    data
+                })
+    
+                return res.json({
+                    data,
+                    message: 'data created'
+                })
+                
+            } catch (error) {
+                return res.status(400).json({ 
+                    message: 'Create Error',
+                    errors: error.message ? [error.message] : []
+                })
+            }
 
-            // AFTER CREATE
-            await runHook(req.table, 'afterCreate', {
-                req,
-                data
-            })
-
-            res.json({
-                data,
-                message: 'data created'
-            })
         },
         async update(req, res){
 
             let payload = req.body
 
+            const oldData = await service.single(req.table, req.params.id)
+
             // BEFORE UPDATE
             const before = await runHook(req.table, 'beforeUpdate', {
                 req,
-                payload
+                payload,
+                oldData
             })
 
             if (before?.abort) {
@@ -107,21 +119,30 @@ export default function DatabaseController() {
 
             if (before) payload = before.payload
 
-            const oldData = await service.single(req.table, req.params.id)
+            try {
+                const data = await service.update(req.table, req.params.id, payload)
 
-            const data = await service.update(req.table, req.params.id, payload)
+                // AFTER UPDATE
+                await runHook(req.table, 'afterUpdate', {
+                    req,
+                    data,
+                    oldData
+                })
 
-            // AFTER UPDATE
-            await runHook(req.table, 'afterUpdate', {
-                req,
-                data,
-                oldData
-            })
+                return res.json({
+                    data,
+                    message: 'data updated'
+                })
+                
+            } catch (error) {
+                return res.status(400).json({ 
+                    message: 'Update Error',
+                    errors: error.message ? [error.message] : []
+                })
+            }
 
-            res.json({
-                data,
-                message: 'data updated'
-            })
+
+            
         },
         async remove(req, res){
             const row = await service.single(req.table, req.params.id)

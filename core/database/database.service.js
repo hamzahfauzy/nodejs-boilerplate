@@ -1,5 +1,5 @@
 import { getModel } from "./database.registry.js";
-import { Op } from 'sequelize'
+import { Op, col, where } from 'sequelize'
 export default class DatabaseService {
     escapeRegex(text) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -11,7 +11,7 @@ export default class DatabaseService {
         const sortField = query.order?.column || 'id'
         const orderDir = query.order?.dir || 'asc'
 
-        const where = {}
+        const _where = {}
 
         const searchValue = this.escapeRegex(query.search || '')
 
@@ -21,18 +21,27 @@ export default class DatabaseService {
             for (const [key, config] of Object.entries(table.response.list)) {
 
                 if (config.searchable !== true) continue
-                if (typeof config.value === 'string' && config.value.includes('.')) continue
-                if (config.relation === true) continue
+                if (config.relation) {
+                    orFilters.push(where(
+                        col(config.value),
+                        {
+                            [Op.like]: `%${searchValue}%`
+                        }
+                    ))
+                } else {
+                    orFilters.push({
+                        [key]: {
+                            [Op.like]: `%${searchValue}%`
+                        }
+                    })
+                }
+                // if (typeof config.value === 'string' && config.value.includes('.')) continue
+                // if (config.relation === true) continue
 
-                orFilters.push({
-                    [key]: {
-                        [Op.like]: `%${searchValue}%`
-                    }
-                })
             }
 
             if (orFilters.length) {
-                where[Op.or] = orFilters
+                _where[Op.or] = orFilters
             }
         }
 
@@ -67,7 +76,7 @@ export default class DatabaseService {
             }
 
             if (andFilters.length) {
-                where[Op.and] = andFilters
+                _where[Op.and] = andFilters
             }
         }
 
@@ -95,7 +104,7 @@ export default class DatabaseService {
         * ========================= */
         const { rows, count: total } =
             await table.model.findAndCountAll({
-                where,
+                where: _where,
                 attributes,
                 include,
                 order: [[sortField, orderDir]],
@@ -143,22 +152,31 @@ export default class DatabaseService {
     }
 
     async create(table, payload) {
-        const row = await table.model.create(payload)
-
-        return await this.mapRow(row.toJSON(), table.response?.single)
+        try {
+            const row = await table.model.create(payload)
+    
+            return await this.mapRow(row.toJSON(), table.response?.single)
+            
+        } catch (error) {
+            throw error
+        }
     }
 
     async update(table, id, payload) {
+        try {
+            await table.model.update(payload, {
+                where: { id }
+            })
 
-        await table.model.update(payload, {
-            where: { id }
-        })
+            const row = await table.model.findByPk(id)
 
-        const row = await table.model.findByPk(id)
+            if (!row) return null
 
-        if (!row) return null
-
-        return await this.mapRow(row.toJSON(), table.response?.single)
+            return await this.mapRow(row.toJSON(), table.response?.single)
+            
+        } catch (error) {
+            throw error
+        }
     }
 
     async delete(table, id) {
