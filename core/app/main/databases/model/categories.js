@@ -9,6 +9,11 @@ const responseField = {
     deleted_at: {}
 }
 
+const validation = {
+    name: ['required'],
+    record_type: ['required'],
+}
+
 export default {
     name: 'categories',
     schema: {
@@ -63,4 +68,9 @@ export default {
         list: responseField,
         single: responseField
     },
+
+    validation: {
+        create: validation,
+        update: validation,
+    }
 }

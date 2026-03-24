@@ -1,4 +1,6 @@
 import DatabaseService from "./database.service.js"
+import { validateOrAbort } from "#validation/index.js"
+
 export default function DatabaseController() {
     const service = new DatabaseService()
 
@@ -60,6 +62,19 @@ export default function DatabaseController() {
         async create(req, res){
             let payload = req.body
 
+            if(req.table.validation?.create)
+            {
+                const validate = await validateOrAbort(payload, req.table.validation.create)
+    
+                if(validate.abort)
+                {
+                    return res.status(400).json({ 
+                        message: validate.message,
+                        errors: validate.errors ?? []
+                    })
+                }
+            }
+
             // BEFORE CREATE
             const before = await runHook(req.table, 'beforeCreate', {
                 req,
@@ -100,6 +115,19 @@ export default function DatabaseController() {
         async update(req, res){
 
             let payload = req.body
+
+            if(req.table.validation?.update)
+            {
+                const validate = await validateOrAbort(payload, req.table.validation.update)
+
+                if(validate.abort)
+                {
+                    return res.status(400).json({ 
+                        message: validate.message,
+                        errors: validate.errors ?? []
+                    })
+                }
+            }
 
             const oldData = await service.single(req.table, req.params.id)
 

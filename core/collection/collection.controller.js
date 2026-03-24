@@ -1,4 +1,6 @@
 import CollectionService from "./collection.service.js"
+import { validateOrAbort } from "#validation/index.js"
+
 export default function collectionController() {
     const service = new CollectionService()
 
@@ -61,6 +63,19 @@ export default function collectionController() {
         async create(req, res){
             let payload = req.body
 
+            if(req.collection.validation?.create)
+            {
+                const validate = await validateOrAbort(payload, req.collection.validation.create)
+                
+                if(validate.abort)
+                {
+                    return res.status(400).json({ 
+                        message: validate.message,
+                        errors: validate.errors ?? []
+                    })
+                }
+            }
+
             // BEFORE CREATE
             const before = await runHook(req.collection, 'beforeCreate', {
                 req,
@@ -92,6 +107,19 @@ export default function collectionController() {
         async update(req, res){
 
             let payload = req.body
+
+            if(req.collection.validation?.update)
+            {
+                const validate = await validateOrAbort(payload, req.collection.validation.update)
+                
+                if(validate.abort)
+                {
+                    return res.status(400).json({ 
+                        message: validate.message,
+                        errors: validate.errors ?? []
+                    })
+                }
+            }
 
             // BEFORE UPDATE
             const before = await runHook(req.collection, 'beforeUpdate', {

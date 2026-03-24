@@ -90,9 +90,9 @@ export default {
             search: { label: "Cari..."},
 
             columns: [
+                { key: "full_name", label: "Full Name", sortable: true, searchable: true },
                 { key: "code", label: "Code", sortable: true, searchable: true },
                 { key: "identity_number", label: "Identity Number", sortable: true, searchable: true },
-                { key: "full_name", label: "Full Name", sortable: true, searchable: true },
                 { key: "gender", label: "Gender", sortable: true, searchable: true },
                 { key: "email", label: "Email", sortable: true, searchable: true },
                 { key: "status", label: "Status", sortable: true, searchable: true, type: "status-badge", 

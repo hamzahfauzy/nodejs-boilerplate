@@ -35,17 +35,19 @@ async function loadApp(appDir, name){
 export async function appLoader() {
     
     await loadApp(path.resolve('core/app'), 'main')
+    await loadApp(path.resolve('core/app'), 'default')
     
     const appDir = path.resolve('app')
     const app_modules = (process.env.APP_MODULES).split(',')
-    
-    if (!fs.existsSync(appDir)) return
-    for(const module of app_modules)
-    {
-        await loadApp(appDir, module)
-    }
 
-    await loadApp(path.resolve('core/app'), 'default')
+    if(app_modules && app_modules != '')
+    {
+        if (!fs.existsSync(appDir)) return
+        for(const module of app_modules)
+        {
+            await loadApp(appDir, module)
+        }
+    }
 
     for(const app of apps){
         if(app.boot){

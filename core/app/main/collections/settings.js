@@ -3,6 +3,7 @@ const responseFields = {
     label: {searchable: true},
     key: {searchable: true},
     value: {searchable: true},
+    record_type: {searchable: true},
     createdAt: {},
     updatedAt: {},
 }
@@ -13,7 +14,8 @@ const settings = {
         fields: {
             label: { type: String },
             key: { type: String, unique: true },
-            value: { type: String }
+            value: { type: String },
+            record_type: { type: String }
         },
         options: {
             timestamps: true

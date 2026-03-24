@@ -54,6 +54,17 @@ export default {
 
         context.register.migration('main', 'core/app/main/databases/migrations')
 
+        context.register.route('dashboard', (router) => {
+            router.get('/', (req, res) => {
+                res.json({
+                    total_omzet: 10,
+                    total_visitor: 20,
+                    total_request: 30,
+                    total_income: 40
+                })
+            })
+        })
+
         context.register.route('documents', documentRouter)
     }
 }

@@ -6,7 +6,7 @@ export const rules = {
 
     required(value) {
         if (value === undefined || value === null || value === '') {
-            return 'Field wajib diisi'
+            return 'field is required'
         }
     },
 
@@ -16,37 +16,37 @@ export const rules = {
 
     boolean(value) {
         if (typeof value !== 'boolean') {
-            return 'Harus boolean'
+            return 'must be boolean'
         }
     },
 
     string(value) {
         if (value !== undefined && typeof value !== 'string') {
-            return 'Harus string'
+            return 'must be string'
         }
     },
 
     number(value) {
         if (value !== undefined && typeof value !== 'number') {
-            return 'Harus number'
+            return 'must be number'
         }
     },
 
     integer(value) {
         if (value !== undefined && !Number.isInteger(value)) {
-            return 'Harus integer'
+            return 'must be integer'
         }
     },
 
     array(value) {
         if (value !== undefined && !Array.isArray(value)) {
-            return 'Harus array'
+            return 'must be array'
         }
     },
 
     object(value) {
         if (value !== undefined && typeof value !== 'object') {
-            return 'Harus object'
+            return 'must be object'
         }
     },
 
@@ -56,37 +56,37 @@ export const rules = {
 
     min(value, limit) {
         if (value && value.length < limit) {
-            return `Minimal ${limit} karakter`
+            return `min ${limit} character`
         }
     },
 
     max(value, limit) {
         if (value && value.length > limit) {
-            return `Maksimal ${limit} karakter`
+            return `max ${limit} character`
         }
     },
 
     length(value, len) {
         if (value && value.length !== len) {
-            return `Harus ${len} karakter`
+            return `must be ${len} character`
         }
     },
 
     regex(value, pattern) {
         if (value && !new RegExp(pattern).test(value)) {
-            return 'Format tidak sesuai'
+            return 'unexpected format'
         }
     },
 
     in(value, list) {
         if (value !== undefined && !list.includes(value)) {
-            return `Harus salah satu dari ${list.join(', ')}`
+            return `must be one of ${list.join(', ')}`
         }
     },
 
     notIn(value, list) {
         if (value !== undefined && list.includes(value)) {
-            return 'Nilai tidak diperbolehkan'
+            return 'value is not allowed'
         }
     },
 
@@ -98,7 +98,7 @@ export const rules = {
         if (!value) return
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!re.test(value)) {
-            return 'Email tidak valid'
+            return 'email is not valid'
         }
     },
 
@@ -107,13 +107,13 @@ export const rules = {
         try {
             new URL(value)
         } catch {
-            return 'URL tidak valid'
+            return 'url is not valid'
         }
     },
 
     date(value) {
         if (value && isNaN(Date.parse(value))) {
-            return 'Tanggal tidak valid'
+            return 'date is not valid'
         }
     },
 
@@ -123,19 +123,19 @@ export const rules = {
 
     minValue(value, min) {
         if (value < min) {
-            return `Minimal ${min}`
+            return `min ${min}`
         }
     },
 
     maxValue(value, max) {
         if (value > max) {
-            return `Maksimal ${max}`
+            return `max ${max}`
         }
     },
 
     between(value, [min, max]) {
         if (value < min || value > max) {
-            return `Harus antara ${min} - ${max}`
+            return `must between ${min} - ${max}`
         }
     },
 
@@ -145,13 +145,13 @@ export const rules = {
 
     minItems(value, limit) {
         if (Array.isArray(value) && value.length < limit) {
-            return `Minimal ${limit} item`
+            return `min ${limit} item`
         }
     },
 
     maxItems(value, limit) {
         if (Array.isArray(value) && value.length > limit) {
-            return `Maksimal ${limit} item`
+            return `max ${limit} item`
         }
     },
 
@@ -159,7 +159,7 @@ export const rules = {
         if (Array.isArray(value)) {
             const unique = new Set(value)
             if (unique.size !== value.length) {
-                return 'Item tidak boleh duplikat'
+                return 'item cannot be duplicated'
             }
         }
     },
@@ -170,13 +170,13 @@ export const rules = {
 
     requiredIf(value, { field, equals }, payload) {
         if (payload?.[field] === equals && !value) {
-            return 'Field wajib diisi'
+            return 'field is required'
         }
     },
 
     requiredUnless(value, { field, equals }, payload) {
         if (payload?.[field] !== equals && !value) {
-            return 'Field wajib diisi'
+            return 'field is required'
         }
     },
 
@@ -188,7 +188,7 @@ export const rules = {
         if (!value) return
         const exists = await model.exists({ [field]: value })
         if (exists) {
-            return 'Sudah digunakan'
+            return 'already used'
         }
     },
 
@@ -196,7 +196,7 @@ export const rules = {
         if (!value) return
         const exists = await model.exists({ [field]: value })
         if (!exists) {
-            return 'Data tidak ditemukan'
+            return 'data not found'
         }
     }
 }

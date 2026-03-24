@@ -13,6 +13,7 @@ export default {
                     { name: "label", label: "Label", type: "text", className: 'col-md-6' },
                     { name: "key", label: "Key", type: "text", className: 'col-md-6' },
                     { name: "value", label: "Value", type: "text" },
+                    { name: "record_type", label: "Record Type", type: "text" },
                 ]
             },
             actions: [
@@ -23,6 +24,7 @@ export default {
                         { name: "label", label: "Label", type: "text", className: 'col-md-6' },
                         { name: "key", label: "Key", type: "text", className: 'col-md-6' },
                         { name: "value", label: "Value", type: "text" },
+                        { name: "record_type", label: "Record Type", type: "text" },
                     ]
                 },
                 { label: 'Delete', type: 'delete', icon: 'trash', class:'text-danger', permission: "settings.delete"},
@@ -32,6 +34,7 @@ export default {
                 { key: "label", label: "Label", sortable: true, searchable: true },
                 { key: "key", label: "Key", sortable: true, searchable: true },
                 { key: "value", label: "Value", sortable: true, searchable: true },
+                { key: "record_type", label: "Record Type", sortable: true, searchable: true },
                 { key: "createdAt", label: "Created At", sortable: true,type: "date" },
                 { key: "updatedAt", label: "Updated At", sortable: true,type: "date" },
             ],

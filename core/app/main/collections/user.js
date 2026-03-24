@@ -37,6 +37,20 @@ const responseFields = {
     updatedAt: {},
 }
 
+const createValidation = {
+    name: ['required', { name: 'min', value: 3 }],
+    username: ['required', { name: 'min', value: 3 }],
+    password: ['required', { name: 'min', value: 8 }],
+    isActive: ['required']
+}
+
+const updateValidation = {
+    name: ['required', { name: 'min', value: 3 }],
+    username: ['required', { name: 'min', value: 3 }],
+    password: ['nullable', { name: 'min', value: 8 }],
+    isActive: ['required']
+}
+
 const users = {
     name: 'users',
     schema: {
@@ -56,6 +70,10 @@ const users = {
         list: responseFields,
         single: responseFields
     },
+    validation: {
+        create: createValidation,
+        update: updateValidation
+    },
     hooks: {
         beforeCreate: async context => {
             const payload = {...context.payload}
@@ -65,18 +83,9 @@ const users = {
                 delete payload.roles
             }
 
-            const validate = await validateOrAbort(payload, {
-                name: ['required', { name: 'min', value: 3 }],
-                username: ['required', { name: 'min', value: 3 }],
-                password: ['required', { name: 'min', value: 8 }],
-                isActive: ['required']
-            })
+            payload.password = await hashPassword(payload.password)
 
-            if(validate.abort) return validate
-
-            validate.payload.password = await hashPassword(payload.password)
-
-            return validate
+            return {payload}
         },
         afterCreate: async context => {
             const user  = context.data
@@ -116,21 +125,12 @@ const users = {
                 delete payload.roleIds
             }
 
-            const validate = await validateOrAbort(payload, {
-                name: ['required', { name: 'min', value: 3 }],
-                username: ['required', { name: 'min', value: 3 }],
-                password: ['nullable', { name: 'min', value: 8 }],
-                isActive: ['required']
-            })
-
-            if(validate.abort) return validate
-
             if(payload.password)
             {
-                validate.payload.password = await hashPassword(payload.password)
+                payload.password = await hashPassword(payload.password)
             }
 
-            return validate
+            return {payload}
         }
     }
 }
