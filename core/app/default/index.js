@@ -7,13 +7,13 @@ export default {
             name: 'default',
             isSection: true,
             children: {
-                // documents: {
-                //     label: 'Documents',
-                //     icon: 'file',
-                //     route: '/documents',
-                //     permission: "documents.list",
-                //     activeState:['/documents'],
-                // },
+                documents: {
+                    label: 'Documents',
+                    icon: 'file',
+                    route: '/documents',
+                    permission: "documents.list",
+                    activeState:['/documents'],
+                },
 
                 categories: {
                     label: 'Categories',

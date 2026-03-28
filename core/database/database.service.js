@@ -59,6 +59,15 @@ export default class DatabaseService {
                 if (value === 'true' || value === 'false') {
                     andFilters.push({ [key]: value === 'true' })
                 }
+                
+                else if(value == null)
+                {
+                    andFilters.push({
+                        [key]: {
+                            [Op.is]: null
+                        }
+                    })
+                }
 
                 // NUMBER
                 else if (!isNaN(value) && value !== '') {
@@ -67,11 +76,22 @@ export default class DatabaseService {
 
                 // STRING
                 else if (typeof value === 'string' && value.trim() !== '') {
-                    andFilters.push({
-                        [key]: {
-                            [Op.like]: `%${value}%`
-                        }
-                    })
+                    if(value.trim() == 'null')
+                    {
+                        andFilters.push({
+                            [key]: {
+                                [Op.is]: null
+                            }
+                        })
+                    }
+                    else
+                    {
+                        andFilters.push({
+                            [key]: {
+                                [Op.like]: `%${value}%`
+                            }
+                        })
+                    }
                 }
             }
 

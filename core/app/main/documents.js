@@ -14,7 +14,7 @@ export function documentRouter(router){
                 name: file.originalname,
                 mime_type: file.mimetype,
                 size: file.size,
-                storage_path: file.path
+                storage_path: file.path,
             }
 
             if(req.body?.parent_id)

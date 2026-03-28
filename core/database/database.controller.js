@@ -44,7 +44,7 @@ export default function DatabaseController() {
         async single(req, res){
             let data = await service.single(req.table, req.params.id)
 
-            const hookData = await runHook(req.collection, 'singleData', {
+            const hookData = await runHook(req.table, 'singleData', {
                 req,
                 data
             })
