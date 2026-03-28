@@ -14,6 +14,21 @@ export default {
                 //     permission: "documents.list",
                 //     activeState:['/documents'],
                 // },
+
+                categories: {
+                    label: 'Categories',
+                    route: '/categories',
+                    icon: "sliders",
+                    permission: "categories.list",
+                    activeState:['/categories'],
+                },
+                people: {
+                    label: 'People',
+                    icon: "users",
+                    route: '/people',
+                    permission: "people.list",
+                    activeState:['/people'],
+                },
                 
                 users: {
                     label: "Users",

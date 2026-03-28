@@ -39,9 +39,9 @@ export default {
             context.register.collection(collection.name, collection) 
         })
 
-        for(const m in menu) {
-            context.ui.registerMenu(m, menu[m])
-        }
+        // for(const m in menu) {
+        //     context.ui.registerMenu(m, menu[m])
+        // }
         
         for(const p in page) {
             context.ui.registerPage(p, page[p])

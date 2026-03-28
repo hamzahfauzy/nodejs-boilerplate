@@ -9,7 +9,8 @@
     "#collection/*": "./core/collection/*",
     "#database/*": "./core/database/*",
     "#app/*": "./core/app/*",
-    "#validation/*": "./core/validation/*"
+    "#validation/*": "./core/validation/*",
+    "#libs/*": "./core/libraries/*"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

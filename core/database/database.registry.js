@@ -21,19 +21,44 @@ function registerModel(name, fields, options = {}, relations = []) {
         }
     )
 
-    if(relations)
-    {
-        for(const relation of relations)
-        {
-            const relationModel = sequelize.models[relation.modelName]
-            model[relation.type](relationModel, {
+    // if(relations)
+    // {
+    //     for(const relation of relations)
+    //     {
+    //         const relationModel = sequelize.models[relation.modelName]
+    //         model[relation.type](relationModel, {
+    //             as: relation.as,
+    //             foreignKey: relation.foreignKey
+    //         })
+    //     }
+    // }
+
+    return model
+}
+
+export function initRelations() {
+
+    for (const [name, config] of registry.entries()) {
+
+        const model = config.model
+        const relations = config.schema.relations ?? []
+
+        for (const relation of relations) {
+
+            const targetModel = sequelize.models[relation.modelName]
+
+            if (!targetModel) {
+                throw new Error(
+                    `Relation error: Model ${relation.modelName} not registered yet`
+                )
+            }
+
+            model[relation.type](targetModel, {
                 as: relation.as,
                 foreignKey: relation.foreignKey
             })
         }
     }
-
-    return model
 }
 
 export function registerTable(name, config) {

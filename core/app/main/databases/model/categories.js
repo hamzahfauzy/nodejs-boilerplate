@@ -11,7 +11,6 @@ const responseField = {
 
 const validation = {
     name: ['required'],
-    record_type: ['required'],
 }
 
 export default {

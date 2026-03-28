@@ -153,9 +153,19 @@ export default class DatabaseService {
 
     async create(table, payload) {
         try {
-            const row = await table.model.create(payload)
+            if(table.events?.beforeCreate)
+            {
+                await table.events?.beforeCreate({table, payload})
+            }
+
+            const data = await table.model.create(payload)
+
+            if(table.events?.afterCreate)
+            {
+                await table.events?.afterCreate({table, data, payload})
+            }
     
-            return await this.mapRow(row.toJSON(), table.response?.single)
+            return await this.mapRow(data.toJSON(), table.response?.single)
             
         } catch (error) {
             throw error
@@ -164,15 +174,27 @@ export default class DatabaseService {
 
     async update(table, id, payload) {
         try {
+            const oldData = await table.model.findByPk(id)
+
+            if(table.events?.beforeUpdate)
+            {
+                await table.events?.beforeUpdate({table, oldData, payload})
+            }
+
             await table.model.update(payload, {
                 where: { id }
             })
 
-            const row = await table.model.findByPk(id)
+            const data = await table.model.findByPk(id)
 
-            if (!row) return null
+            if(table.events?.afterUpdate)
+            {
+                await table.events?.afterUpdate({table, data, payload, oldData})
+            }
 
-            return await this.mapRow(row.toJSON(), table.response?.single)
+            if (!data) return null
+
+            return await this.mapRow(data.toJSON(), table.response?.single)
             
         } catch (error) {
             throw error
@@ -181,9 +203,23 @@ export default class DatabaseService {
 
     async delete(table, id) {
 
-        return table.model.destroy({
+        const data = await table.model.findByPk(id)
+
+        if(table.events?.beforeDelete)
+        {
+            await table.events?.beforeDelete({table, data})
+        }
+
+        const deleted = await table.model.destroy({
             where: { id }
         })
+
+        if(table.events?.afterDelete)
+        {
+            await table.events?.afterDelete({table, data})
+        }
+
+        return deleted
     }
 
     getColumn(table){
@@ -196,16 +232,18 @@ export default class DatabaseService {
     extractPopulatePaths(fields = {}) {
         const relations = new Set()
 
-        for (const config of Object.values(fields)) {
+        for (const [key, config] of Object.entries(fields)) {
 
             if (config?.pivot) continue
 
-            if (typeof config?.value === 'string' && config.value.includes('.')) {
-                const relation = config.value.split('.')[0]
-                relations.add(relation)
+            // 🔥 SUPPORT OBJECT RELATION (hasMany / hasOne)
+            if (config?.relation && config?.as) {
+                relations.add(config.as)
+                continue
             }
 
-            if (config?.relation && typeof config.value === 'string') {
+            // existing logic (dot notation)
+            if (typeof config?.value === 'string' && config.value.includes('.')) {
                 const relation = config.value.split('.')[0]
                 relations.add(relation)
             }
@@ -220,25 +258,51 @@ export default class DatabaseService {
 
         for (const relation of relations) {
 
-            const attributes = new Set()
+            let nestedConfig = null
 
             for (const config of Object.values(fields)) {
-
-                if (typeof config?.value !== 'string') continue
-
-                if (!config.value.includes('.')) continue
-
-                const [rel, field] = config.value.split('.')
-
-                if (rel === relation) {
-                    attributes.add(field)
+                if (config?.as === relation) {
+                    nestedConfig = config
+                    break
                 }
             }
 
-            include.push({
-                association: relation,
-                attributes: [...attributes]
-            })
+            if(nestedConfig) {
+                const where = nestedConfig?.where
+                const required = nestedConfig?.required ?? false
+
+                const attributes = nestedConfig?.fields
+                    ? this.extractSelectFields(nestedConfig.fields)
+                    : []
+
+                include.push({
+                    association: relation,
+                    attributes,
+                    ...(where && { where }),
+                    required
+                })
+            } else {
+
+                // existing dot-notation logic
+                const attributes = new Set()
+
+                for (const config of Object.values(fields)) {
+
+                    if (typeof config?.value !== 'string') continue
+                    if (!config.value.includes('.')) continue
+
+                    const [rel, field] = config.value.split('.')
+
+                    if (rel === relation) {
+                        attributes.add(field)
+                    }
+                }
+
+                include.push({
+                    association: relation,
+                    attributes: [...attributes]
+                })
+            }
         }
 
         return include
@@ -251,11 +315,19 @@ export default class DatabaseService {
 
         for (const [key, config] of Object.entries(fields)) {
 
+            // skip pivot
             if (config?.pivot) continue
 
+            // 🔥 skip nested relation object (hasMany / hasOne)
+            if (config?.relation && config?.fields) continue
+
+            // skip dot-notation (belongsTo)
             if (typeof config?.value === 'string' && config.value.includes('.')) {
                 continue
             }
+
+            // 🔥 skip computed field
+            if (typeof config?.value === 'function') continue
 
             set.add(key)
         }
@@ -290,6 +362,29 @@ export default class DatabaseService {
             // COMPUTED FIELD
             if (typeof config.value === 'function') {
                 result[key] = config.value(row)
+                continue
+            }
+
+            // 🔥 HAS MANY / HAS ONE (object relation)
+            if (config?.relation && config?.fields) {
+
+                const relationData = row[config.as] || []
+
+                if (Array.isArray(relationData)) {
+
+                    result[key] = await Promise.all(
+                        relationData.map(item =>
+                            this.mapRow(item, config.fields)
+                        )
+                    )
+
+                } else {
+
+                    result[key] = relationData
+                        ? await this.mapRow(relationData, config.fields)
+                        : null
+                }
+
                 continue
             }
 

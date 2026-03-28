@@ -40,7 +40,12 @@ export default {
                         { name: "code", label: "Code", type: "text" },
                         { name: "identity_number", label: "Identity Number", type: "text" },
                         { name: "full_name", label: "Full Name", type: "text" },
-                        { name: "gender", label: "Gender", type: "text" },
+                        { name: "gender", label: "Gender", type: "status-badge", 
+                            badge: {
+                                color:{'male': 'info', 'female': 'warning'}, 
+                                label:{'male':'Male', 'female':'Female'}
+                            }
+                        },
                         { name: "birth_date", label: "Birth Date", type: "text" },
                         { name: "birth_place", label: "Birth Place", type: "text" },
                         { name: "email", label: "Email", type: "text" },
@@ -93,7 +98,12 @@ export default {
                 { key: "full_name", label: "Full Name", sortable: true, searchable: true },
                 { key: "code", label: "Code", sortable: true, searchable: true },
                 { key: "identity_number", label: "Identity Number", sortable: true, searchable: true },
-                { key: "gender", label: "Gender", sortable: true, searchable: true },
+                { key: "gender", label: "Gender", type: "status-badge", sortable: true, searchable: true,
+                    badge: {
+                        color:{'male': 'info', 'female': 'warning'}, 
+                        label:{'male':'Male', 'female':'Female'}
+                    }
+                },
                 { key: "email", label: "Email", sortable: true, searchable: true },
                 { key: "status", label: "Status", sortable: true, searchable: true, type: "status-badge", 
                     badge: {

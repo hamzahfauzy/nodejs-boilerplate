@@ -4,6 +4,7 @@ import { pathToFileURL } from 'url'
 import { register } from './app.registry.js'
 import mongoose from 'mongoose'
 import ui from './app.ui.js'
+import { initRelations } from '#database/database.registry.js'
 
 const apps = []
 
@@ -35,8 +36,7 @@ async function loadApp(appDir, name){
 export async function appLoader() {
     
     await loadApp(path.resolve('core/app'), 'main')
-    await loadApp(path.resolve('core/app'), 'default')
-    
+
     const appDir = path.resolve('app')
     const app_modules = (process.env.APP_MODULES).split(',')
 
@@ -48,6 +48,10 @@ export async function appLoader() {
             await loadApp(appDir, module)
         }
     }
+
+    await loadApp(path.resolve('core/app'), 'default')
+
+    initRelations()
 
     for(const app of apps){
         if(app.boot){
