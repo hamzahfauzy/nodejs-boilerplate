@@ -1,6 +1,9 @@
 import { getModel } from "./database.registry.js";
 import { Op, col, where } from 'sequelize'
+import { eventBus } from "#libs/eventBus.js";
+
 export default class DatabaseService {
+    
     escapeRegex(text) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
@@ -155,6 +158,8 @@ export default class DatabaseService {
 
     async single(table, id) {
 
+        await eventBus.emitAsync(`${table.name}.single`, {table, id})
+
         const populatePaths = this.extractPopulatePaths(table.response?.single)
         const include = this.buildSequelizeInclude(populatePaths, table.response?.single)
         const attributes = this.extractSelectFields(table.response?.single)
@@ -171,18 +176,23 @@ export default class DatabaseService {
     }
 
     async create(table, payload) {
+
         try {
             if(table.events?.beforeCreate)
             {
                 await table.events?.beforeCreate({table, payload})
             }
-
+            
+            await eventBus.emitAsync(`${table.name}.beforeCreate`, {table, payload})
+            
             const data = await table.model.create(payload)
-
+            
             if(table.events?.afterCreate)
             {
                 await table.events?.afterCreate({table, data, payload})
             }
+            
+            await eventBus.emitAsync(`${table.name}.afterCreate`, {table, payload})
     
             return await this.mapRow(data.toJSON(), table.response?.single)
             
@@ -199,6 +209,7 @@ export default class DatabaseService {
             {
                 await table.events?.beforeUpdate({table, oldData, payload})
             }
+            await eventBus.emitAsync(`${table.name}.beforeUpdate`, {table, oldData, payload})
 
             await table.model.update(payload, {
                 where: { id }
@@ -210,6 +221,7 @@ export default class DatabaseService {
             {
                 await table.events?.afterUpdate({table, data, payload, oldData})
             }
+            await eventBus.emitAsync(`${table.name}.afterUpdate`, {table, data, payload, oldData})
 
             if (!data) return null
 
@@ -228,6 +240,7 @@ export default class DatabaseService {
         {
             await table.events?.beforeDelete({table, data})
         }
+        await eventBus.emitAsync(`${table.name}.beforeDelete`, {table, data})
 
         const deleted = await table.model.destroy({
             where: { id }
@@ -237,6 +250,7 @@ export default class DatabaseService {
         {
             await table.events?.afterDelete({table, data})
         }
+        await eventBus.emitAsync(`${table.name}.afterDelete`, {table, data})
 
         return deleted
     }
