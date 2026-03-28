@@ -21,6 +21,10 @@ export function databaseMiddleware(){
 export function databasePermission(permissionKey){
 
     return async (req, res, next) => {
+        if(req.user.permissions.includes("*")){
+            next()
+            return
+        }
         const key = req.table.name + '.' + permissionKey
         if (!req.table.permissions.includes(key) || !req.user.permissions.includes(key)) {
             res.status(403).json({
