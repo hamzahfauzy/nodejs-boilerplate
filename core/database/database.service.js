@@ -35,8 +35,6 @@ export default class DatabaseService {
                         }
                     })
                 }
-                // if (typeof config.value === 'string' && config.value.includes('.')) continue
-                // if (config.relation === true) continue
 
             }
 
@@ -44,6 +42,7 @@ export default class DatabaseService {
                 _where[Op.or] = orFilters
             }
         }
+
 
         /* =========================
         * FILTERS (AND)
