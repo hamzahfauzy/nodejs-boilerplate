@@ -21,17 +21,21 @@ function registerModel(name, fields, options = {}, relations = []) {
         }
     )
 
-    // if(relations)
-    // {
-    //     for(const relation of relations)
-    //     {
-    //         const relationModel = sequelize.models[relation.modelName]
-    //         model[relation.type](relationModel, {
-    //             as: relation.as,
-    //             foreignKey: relation.foreignKey
-    //         })
-    //     }
-    // }
+    // 🔥 AUTO MORPH DETECTION
+    if (fields.ref_id && fields.ref_name) {
+
+        model.prototype.getReference = async function (options = {}) {
+            const modelName = this.ref_name
+            const targetModel = sequelize.models[modelName]
+
+            if (!targetModel) {
+                throw new Error(`Model ${modelName} not registered`)
+            }
+
+            return targetModel.findByPk(this.ref_id, options)
+        }
+
+    }
 
     return model
 }

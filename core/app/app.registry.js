@@ -4,6 +4,7 @@ import { registerCollection } from '#collection/collection.registry.js';
 import { registerMigration, registerTable } from '#database/database.registry.js';
 
 export const appRouter = express.Router()
+export const publicRouter = express.Router()
 
 export const register = {
   collection(name, config){
@@ -30,6 +31,12 @@ export const register = {
     const router = express.Router()
     fn(router)
     appRouter.use(`/app/${path}`, router)
+  },
+  
+  publicRoute(path, fn) {
+    const router = express.Router()
+    fn(router)
+    publicRouter.use(`/public/${path}`, router)
   },
 
   model(name, schema) {

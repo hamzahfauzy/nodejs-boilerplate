@@ -1,3 +1,10 @@
+import path from 'path'
+
+export function getView(dir, filename) {
+    const rootDir = process.cwd()
+    return path.join(rootDir, dir, filename)
+}
+
 function parseDate(dateString) {
     if (!dateString) return null;
 

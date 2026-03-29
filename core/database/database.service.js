@@ -1,4 +1,4 @@
-import { getModel } from "./database.registry.js";
+import { getModel, getTable } from "./database.registry.js";
 import { Op, col, where } from 'sequelize'
 import { eventBus } from "#libs/eventBus.js";
 
@@ -135,9 +135,10 @@ export default class DatabaseService {
                 distinct: true // ⬅️ penting kalau ada include
             })
 
+        const morphCache = {}
         const data = await Promise.all(
             rows.map(row =>
-                this.mapRow(row.toJSON(), table.response?.list)
+                this.mapRow(row.toJSON(), table.response?.list, morphCache)
             )
         )
 
@@ -172,7 +173,9 @@ export default class DatabaseService {
 
         if (!row) return null
 
-        return await this.mapRow(row.toJSON(), table.response?.single)
+        const morphCache = {}
+
+        return await this.mapRow(row.toJSON(), table.response?.single, morphCache)
     }
 
     async create(table, payload) {
@@ -209,6 +212,7 @@ export default class DatabaseService {
             {
                 await table.events?.beforeUpdate({table, oldData, payload})
             }
+
             await eventBus.emitAsync(`${table.name}.beforeUpdate`, {table, oldData, payload})
 
             await table.model.update(payload, {
@@ -351,6 +355,9 @@ export default class DatabaseService {
             // skip pivot
             if (config?.pivot) continue
 
+            // skip morph
+            if (config?.morph) continue
+
             // 🔥 skip nested relation object (hasMany / hasOne)
             if (config?.relation && config?.fields) continue
 
@@ -369,7 +376,7 @@ export default class DatabaseService {
     }
 
     // mapping hasil ke format DataTable
-    async mapRow(row, fields) {
+    async mapRow(row, fields, morphCache = {}) {
         const result = {}
 
         if (!row) return result
@@ -424,6 +431,45 @@ export default class DatabaseService {
             // RELATION (include)
             if (config.relation) {
                 result[key] = this.resolveValue(row, config.value)
+                continue
+            }
+
+            // 🔥 MORPH TO (dynamic reference)
+            if (config?.morph) {
+
+                const type = row[config.typeField || 'ref_name']
+                const id = row[config.idField || 'ref_id']
+
+                if (!type || !id) {
+                    result[key] = null
+                    continue
+                }
+
+                const table = getTable(type)
+
+                if(!table)
+                {
+                    result[key] = null
+                    continue
+                }
+
+                // 🔥 INIT CACHE GROUP
+                if (!morphCache[type]) {
+                    morphCache[type] = {}
+                }
+
+                // 🔥 LOAD IF NOT EXISTS
+                if (!morphCache[type][id]) {
+                    const ref = await this.single(table, id)
+                    morphCache[type][id] = ref ?? null
+                }
+
+                const refData = morphCache[type][id]
+
+                result[key] = config.fields && refData
+                    ? await this.mapRow(refData, config.fields, morphCache)
+                    : refData
+
                 continue
             }
 

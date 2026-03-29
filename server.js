@@ -9,7 +9,7 @@ import { databaseMiddleware } from '#database/database.middleware.js'
 import { appLoader } from './core/app/app.loader.js'
 import { authMiddleware, logMiddleware } from './core/app/app.middleware.js'
 import { authRouter, uiRouter, profileRouter } from './core/app/app.router.js'
-import { appRouter } from '#app/app.registry.js'
+import { appRouter, publicRouter } from '#app/app.registry.js'
 
 const user = process.env.DB_USER && process.env.DB_PASS ? process.env.DB_USER + ':' + process.env.DB_PASS + '@' : ''
 const connectionString = `mongodb://${user}${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`
@@ -24,10 +24,15 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
 
+app.set('view engine', 'ejs');
+app.set('views', process.cwd())
+
 app.use(
   "/storage",
   express.static("storage")
 );
+
+app.use(publicRouter)
 
 app.use('/auth', authRouter())
 

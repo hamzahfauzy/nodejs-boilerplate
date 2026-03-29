@@ -6,6 +6,9 @@ const responseField = {
     first_name: { searchable: true },
     last_name: { searchable: true },
     full_name: { searchable: true },
+    name: {
+        value: row => row.full_name
+    },
     email: { searchable: true },
     phone: { searchable: true },
     gender: {},
