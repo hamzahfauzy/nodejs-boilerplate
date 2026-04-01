@@ -5,7 +5,7 @@ import { eventBus } from "#libs/eventBus.js";
 export default class DatabaseService {
     
     escapeRegex(text) {
-        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return text && text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     async list(table, query, limit = 20){
@@ -105,8 +105,17 @@ export default class DatabaseService {
         /* =========================
         * INCLUDE (POPULATE)
         * ========================= */
-        const paths = this.extractPopulatePaths(table.response?.list)
-        const include = this.buildSequelizeInclude(paths, table.response?.list)
+        // const paths = this.extractPopulatePaths(table.response?.list)
+        // const include = this.buildSequelizeInclude([], table.response?.list)
+        const includeTree = this.buildIncludeTree(table.response?.list)
+        const includeFromPath = this.buildSequelizeIncludeFromTree(includeTree, table.model)
+
+        const includeFromObject = this.buildIncludeFromRelationObject(table.response?.list, table.model)
+
+        const include = this.mergeIncludes(includeFromPath, includeFromObject)
+
+        // const includeTree = this.buildIncludeTree(table.response?.list)
+        // const include = this.buildSequelizeIncludeFromTree(includeTree, table.model)
 
         /* =========================
         * SELECT FIELDS
@@ -161,12 +170,43 @@ export default class DatabaseService {
 
         await eventBus.emitAsync(`${table.name}.single`, {table, id})
 
-        const populatePaths = this.extractPopulatePaths(table.response?.single)
-        const include = this.buildSequelizeInclude(populatePaths, table.response?.single)
+        const includeTree = this.buildIncludeTree(table.response?.single)
+        const includeFromPath = this.buildSequelizeIncludeFromTree(includeTree, table.model)
+
+        const includeFromObject = this.buildIncludeFromRelationObject(table.response?.single, table.model)
+
+        const include = this.mergeIncludes(includeFromPath, includeFromObject)
+
         const attributes = this.extractSelectFields(table.response?.single)
 
         const row = await table.model.findOne({
             where: { id },
+            attributes,
+            include
+        })
+
+        if (!row) return null
+
+        const morphCache = {}
+
+        return await this.mapRow(row.toJSON(), table.response?.single, morphCache)
+    }
+
+    async singleByClause(table, where) {
+
+        await eventBus.emitAsync(`${table.name}.singleByClause`, {table, where})
+
+        const includeTree = this.buildIncludeTree(table.response?.single)
+        const includeFromPath = this.buildSequelizeIncludeFromTree(includeTree, table.model)
+
+        const includeFromObject = this.buildIncludeFromRelationObject(table.response?.single, table.model)
+
+        const include = this.mergeIncludes(includeFromPath, includeFromObject)
+
+        const attributes = this.extractSelectFields(table.response?.single)
+
+        const row = await table.model.findOne({
+            where,
             attributes,
             include
         })
@@ -289,57 +329,223 @@ export default class DatabaseService {
         return [...relations]
     }
 
+    buildNestedIncludeFromWith(withString, model) {
+        if (!withString) return []
+
+        const parts = withString.split('.')
+        let currentModel = model
+        let root = []
+        let pointer = root
+
+        for (const relation of parts) {
+
+            const association = currentModel.associations[relation]
+            if (!association) break
+
+            const node = {
+                association: relation,
+                required: false,
+                include: []
+            }
+
+            pointer.push(node)
+
+            currentModel = association.target
+            pointer = node.include
+        }
+
+        return root
+    }
+
+    buildIncludeFromRelationObject(fields, model, depth = 0) {
+        const includes = []
+
+        for (const key in fields) {
+
+            const field = fields[key]
+
+            if (!field.relation || !field.as) continue
+
+            const association = model.associations[field.as]
+            if (!association) continue
+
+            const targetModel = association.target
+            const targetTable = getTable(targetModel.name)
+
+            // 🔥 AUTO ambil response.single jika tidak ada fields
+            const nestedFields =
+                field.fields ??
+                targetTable?.response?.single
+
+            // 🔥 ambil attributes dari nestedFields
+            // const attributes = nestedFields
+            //     ? this.extractSelectFields(nestedFields)
+            //     : undefined
+
+            let nestedInclude = []
+
+            // 🔥 1️⃣ from nested fields
+            if (nestedFields) {
+                nestedInclude = this.buildIncludeFromRelationObject(
+                    nestedFields,
+                    targetModel,
+                    depth + 1
+                )
+            }
+
+            // 🔥 2️⃣ from "with"
+            if (field.with) {
+                const withInclude = this.buildNestedIncludeFromWith(
+                    field.with,
+                    targetModel
+                )
+
+                nestedInclude = this.mergeIncludes(nestedInclude, withInclude)
+            }
+
+            const includeConfig = {
+                association: field.as,
+                required: field.required ?? false,
+                include: nestedInclude,
+                ...(field.where && { where: field.where }) // ⬅️ tambahkan ini
+            }
+
+            // 🔥 SUPPORT COMPOSITE FK
+            if (field.foreignKey && Array.isArray(field.foreignKey)) {
+
+                const sourceTable = model.getTableName()
+                const targetTable = association.target.getTableName()
+
+                const onConditions = {}
+
+                field.foreignKey.forEach((fk, index) => {
+                    const targetKey = field.targetKey?.[index] || fk
+
+                    onConditions[`${targetTable}.${targetKey}`] =
+                        col(`${sourceTable}.${fk}`)
+                })
+
+                includeConfig.on = onConditions
+            }
+
+            includes.push(includeConfig)
+        }
+
+        return includes
+    }
+
+    mergeIncludes(a = [], b = []) {
+        const map = new Map()
+
+        ;[...a, ...b].forEach(item => {
+            const key = item.association
+
+            if (!map.has(key)) {
+                map.set(key, { ...item })
+            } else {
+                const existing = map.get(key)
+
+                // 🔥 merge include recursively
+                existing.include = this.mergeIncludes(
+                    existing.include || [],
+                    item.include || []
+                )
+
+                // 🔥 merge where (override jika ada)
+                if (item.where) {
+                    existing.where = item.where
+                }
+
+                // 🔥 merge required
+                if (item.required !== undefined) {
+                    existing.required = item.required
+                }
+            }
+        })
+
+        return Array.from(map.values())
+    }
+
+    buildIncludeTree(fields) {
+        const tree = {}
+
+        for (const key in fields) {
+            const field = fields[key]
+
+            if (!field.relation) continue
+
+            // 🔥 OBJECT RELATION (hasMany / hasOne)
+            if (field.fields && field.as) {
+
+                if (!tree[field.as]) {
+                    tree[field.as] = this.buildIncludeTree(field.fields)
+                }
+
+                continue
+            }
+
+            // 🔥 STRING RELATION
+            if (typeof field.value === 'string') {
+                const parts = field.value.split('.')
+                const relationPath = parts.slice(0, -1)
+
+                let current = tree
+
+                for (const relation of relationPath) {
+                    if (!current[relation]) {
+                        current[relation] = {}
+                    }
+                    current = current[relation]
+                }
+            }
+        }
+
+        return tree
+    }
+
+    buildSequelizeIncludeFromTree(tree, model) {
+        const includes = []
+
+        for (const relation in tree) {
+            const association = model.associations[relation]
+            if (!association) continue
+
+            includes.push({
+                association: relation,
+                required: false,
+                include: this.buildSequelizeIncludeFromTree(
+                    tree[relation],
+                    association.target
+                )
+            })
+        }
+
+        return includes
+    }
+
     buildSequelizeInclude(relations = [], fields = {}) {
 
         const include = []
 
-        for (const relation of relations) {
+        for (const [key, config] of Object.entries(fields)) {
 
-            let nestedConfig = null
+            if (!config?.relation || !config?.as) continue
 
-            for (const config of Object.values(fields)) {
-                if (config?.as === relation) {
-                    nestedConfig = config
-                    break
-                }
-            }
+            const attributes = config?.fields
+                ? this.extractSelectFields(config.fields)
+                : undefined
 
-            if(nestedConfig) {
-                const where = nestedConfig?.where
-                const required = nestedConfig?.required ?? false
+            const nestedInclude = config?.fields
+                ? this.buildSequelizeInclude([], config.fields)
+                : undefined
 
-                const attributes = nestedConfig?.fields
-                    ? this.extractSelectFields(nestedConfig.fields)
-                    : []
-
-                include.push({
-                    association: relation,
-                    attributes,
-                    ...(where && { where }),
-                    required
-                })
-            } else {
-
-                // existing dot-notation logic
-                const attributes = new Set()
-
-                for (const config of Object.values(fields)) {
-
-                    if (typeof config?.value !== 'string') continue
-                    if (!config.value.includes('.')) continue
-
-                    const [rel, field] = config.value.split('.')
-
-                    if (rel === relation) {
-                        attributes.add(field)
-                    }
-                }
-
-                include.push({
-                    association: relation,
-                    attributes: [...attributes]
-                })
-            }
+            include.push({
+                association: config.as,
+                attributes,
+                ...(nestedInclude?.length && { include: nestedInclude }),
+                ...(config.where && { where: config.where }),
+                required: config.required ?? false
+            })
         }
 
         return include
@@ -359,7 +565,7 @@ export default class DatabaseService {
             if (config?.morph) continue
 
             // 🔥 skip nested relation object (hasMany / hasOne)
-            if (config?.relation && config?.fields) continue
+            if (config?.relation) continue
 
             // skip dot-notation (belongsTo)
             if (typeof config?.value === 'string' && config.value.includes('.')) {
@@ -401,40 +607,113 @@ export default class DatabaseService {
 
             // COMPUTED FIELD
             if (typeof config.value === 'function') {
-                result[key] = config.value(row)
+                // result[key] = config.value(row)
                 continue
             }
 
-            // 🔥 HAS MANY / HAS ONE (object relation)
-            if (config?.relation && config?.fields) {
+            // 🔥 HAS MANY / HAS ONE / BELONGS TO (object relation)
+            if (config?.relation && config?.as) {
 
-                const relationData = row[config.as] || []
+                const relationData = row[config.as]
+
+                if (!relationData) {
+                    result[key] = Array.isArray(relationData) ? [] : null
+                    continue
+                }
+
+                const association = row.constructor.associations?.[config.as]
+                const targetModel = association?.target
+                const targetTable = getTable(targetModel?.name)
+
+                // 🔥 AUTO ambil default response.single
+                // const relationFields =
+                //     config.fields ??
+                //     targetTable?.response?.single
+
+                let relationFields = config.fields
+
+                // 🔥 jika fields adalah function, resolve dulu
+                if (typeof relationFields === 'function') {
+                    relationFields = relationFields()
+                }
+
+                // fallback ke default response.single
+                if (!relationFields) {
+                    relationFields = targetTable?.response?.single
+                }
+
+                if (!relationFields) {
+                    result[key] = relationData
+                    continue
+                }
 
                 if (Array.isArray(relationData)) {
 
                     result[key] = await Promise.all(
                         relationData.map(item =>
-                            this.mapRow(item, config.fields)
+                            this.mapRow(item, relationFields, morphCache)
                         )
                     )
 
                 } else {
 
-                    result[key] = relationData
-                        ? await this.mapRow(relationData, config.fields)
-                        : null
+                    result[key] = await this.mapRow(
+                        relationData,
+                        relationFields,
+                        morphCache
+                    )
                 }
 
                 continue
             }
 
             // RELATION (include)
-            if (config.relation) {
-                result[key] = this.resolveValue(row, config.value)
+            if (config.relation && typeof config.value === 'string') {
+                result[key] = this.getNestedValue(row, config.value)
                 continue
             }
 
             // 🔥 MORPH TO (dynamic reference)
+            if (config?.pivoting) {
+                const tableName = config.tableName
+                const ref_name = row[config.typeField || 'ref_name']
+                const ref_id = row[config.idField || 'ref_id']
+
+                if (!ref_name || !ref_id) {
+                    result[key] = null
+                    continue
+                }
+
+                const table = getTable(tableName)
+
+                if(!table)
+                {
+                    result[key] = null
+                    continue
+                }
+
+                // 🔥 INIT CACHE GROUP
+                if (!morphCache[tableName]) {
+                    morphCache[tableName] = {}
+                }
+
+                // 🔥 LOAD IF NOT EXISTS
+                if (!morphCache[tableName][ref_id]) {
+                    const ref = await this.singleByClause(table, {
+                        ref_name, ref_id
+                    })
+                    morphCache[tableName][ref_id] = ref ?? null
+                }
+
+                const refData = morphCache[tableName][ref_id]
+
+                result[key] = config.fields && refData
+                    ? await this.mapRow(refData, config.fields, morphCache)
+                    : refData
+
+                continue
+            }
+
             if (config?.morph) {
 
                 const type = row[config.typeField || 'ref_name']
@@ -473,10 +752,23 @@ export default class DatabaseService {
                 continue
             }
 
-            result[key] = row[key] ?? ''
+            result[key] = row[key] ?? null
+        }
+
+        for (const [key, config] of Object.entries(fields)) {
+            if (typeof config.value === 'function') {
+                result[key] = config.value(result)
+                continue
+            }
         }
 
         return result
+    }
+
+    getNestedValue(obj, path) {
+        return path.split('.').reduce((acc, part) => {
+            return acc ? acc[part] : null
+        }, obj)
     }
 
     async resolvePivot(parentId, pivot) {

@@ -60,13 +60,13 @@ export default {
                     }
                 },
                 
-                // settings: {
-                //     label: "Settings",
-                //     icon: "settings",
-                //     route: "/settings",
-                //     permission: "settings.list",
-                //     activeState:['/settings']
-                // },
+                settings: {
+                    label: "Settings",
+                    icon: "settings",
+                    route: "/settings",
+                    permission: "settings.list",
+                    activeState:['/settings']
+                },
 
                 activities: {
                     label: "Activities",

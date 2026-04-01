@@ -13,6 +13,7 @@ import documents from './databases/model/documents.js'
 import people from './databases/model/people.js'
 import categories from './databases/model/categories.js'
 import { documentRouter } from './documents.js'
+import { Setting } from './libraries/setting.lib.js'
 
 const collectionSchema = [
     users,
@@ -34,7 +35,7 @@ const tables = [
 
 export default {
     // context {register, ui, db}
-    init(context){
+    async init(context){
         collectionSchema.forEach(collection => {
             context.register.collection(collection.name, collection) 
         })
