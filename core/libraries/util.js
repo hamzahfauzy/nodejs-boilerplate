@@ -64,3 +64,11 @@ export function formatDate(date, format = 'Y-m-d H:i:s') {
 
     return format.replace(/d|j|m|n|Y|y|H|i|s/g, (token) => map[token]);
 };
+
+export function formatRupiah(number){
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(number);
+}
